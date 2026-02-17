@@ -162,9 +162,14 @@ function buildStatusBar(agents) {
             statusClass = 'coming-soon-status';
         }
 
+        const msgBadge = agent.pendingMessages > 0
+            ? `<span class="pill-msg-badge">${agent.pendingMessages}</span>`
+            : '';
+
         pill.innerHTML = `
             <span class="pill-icon"></span>
             <span class="pill-name">${agent.name}</span>
+            ${msgBadge}
             <span class="pill-status ${statusClass}">${statusText}</span>
         `;
 
@@ -236,31 +241,63 @@ async function openAgentDrawer(agentId) {
     taskEl.textContent = agent.currentTask || 'No current task';
     taskEl.className = `drawer-task ${agent.currentTask ? '' : 'no-task'}`;
 
+    const messagesEl = document.getElementById('drawerMessages');
+    const msgCountEl = document.getElementById('drawerMsgCount');
     const eventsEl = document.getElementById('drawerEvents');
+    messagesEl.innerHTML = '<div class="drawer-loading">Loading...</div>';
     eventsEl.innerHTML = '<div class="drawer-loading">Loading...</div>';
 
     agentDrawer.classList.add('open');
 
     try {
-        const events = await fetchJSON(`/events?agent=${agentId}&limit=20`);
-        eventsEl.innerHTML = '';
+        const [messages, events] = await Promise.all([
+            fetchJSON(`/messages?to=${agentId}&limit=20`),
+            fetchJSON(`/events?agent=${agentId}&limit=20`),
+        ]);
 
+        // Render messages
+        const pending = messages.filter(m => m.status === 'pending');
+        msgCountEl.textContent = pending.length > 0 ? pending.length : '';
+        messagesEl.innerHTML = '';
+
+        if (messages.length === 0) {
+            messagesEl.innerHTML = '<div class="drawer-empty">No messages</div>';
+        } else {
+            for (const msg of messages) {
+                const fromConfig = AGENT_CONFIG[msg.from_agent] || { cssClass: 'winston', color: '#888' };
+                const div = document.createElement('div');
+                div.className = `drawer-message ${msg.status}`;
+                div.innerHTML = `
+                    <div class="msg-header">
+                        <span class="msg-from ${fromConfig.cssClass}">${escapeHtml(msg.from_name)}</span>
+                        <span class="msg-time">${formatTimeAgo(msg.created_at)}</span>
+                        <span class="msg-type-badge ${msg.type}">${msg.type}</span>
+                    </div>
+                    ${msg.subject ? `<div class="msg-subject">${escapeHtml(msg.subject)}</div>` : ''}
+                    <div class="msg-body">${escapeHtml(msg.body)}</div>
+                `;
+                messagesEl.appendChild(div);
+            }
+        }
+
+        // Render events
+        eventsEl.innerHTML = '';
         if (events.length === 0) {
             eventsEl.innerHTML = '<div class="drawer-empty">No recent events</div>';
-            return;
-        }
-
-        for (const event of events) {
-            const div = document.createElement('div');
-            div.className = 'drawer-event';
-            div.innerHTML = `
-                <span class="drawer-event-time">${formatTime(event.created_at)}</span>
-                <span class="drawer-event-type">${event.type}</span>
-                <span class="drawer-event-msg">${escapeHtml(event.message)}</span>
-            `;
-            eventsEl.appendChild(div);
+        } else {
+            for (const event of events) {
+                const div = document.createElement('div');
+                div.className = 'drawer-event';
+                div.innerHTML = `
+                    <span class="drawer-event-time">${formatTime(event.created_at)}</span>
+                    <span class="drawer-event-type">${event.type}</span>
+                    <span class="drawer-event-msg">${escapeHtml(event.message)}</span>
+                `;
+                eventsEl.appendChild(div);
+            }
         }
     } catch (err) {
+        messagesEl.innerHTML = '<div class="drawer-empty">Could not load messages</div>';
         eventsEl.innerHTML = '<div class="drawer-empty">Could not load events</div>';
     }
 }

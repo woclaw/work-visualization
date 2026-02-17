@@ -61,6 +61,22 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_agent TEXT NOT NULL,
+    to_agent TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'notification',
+    subject TEXT,
+    body TEXT NOT NULL,
+    ref_id INTEGER,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now')),
+    read_at TEXT,
+    FOREIGN KEY (from_agent) REFERENCES agents(id),
+    FOREIGN KEY (to_agent) REFERENCES agents(id),
+    FOREIGN KEY (ref_id) REFERENCES messages(id)
+  );
 `);
 
 // --- Seed default agents ---
@@ -180,6 +196,9 @@ function getStatus() {
   const recentEvents = getRecentEvents(20);
 
   // Build the shape the frontend expects
+  const msgCountStmt = db.prepare(
+    "SELECT COUNT(*) as c FROM messages WHERE to_agent = ? AND status = 'pending'"
+  );
   const agentsMap = {};
   for (const agent of agents) {
     agentsMap[agent.id] = {
@@ -188,6 +207,7 @@ function getStatus() {
       currentTask: agent.current_task,
       role: agent.role,
       updatedAt: agent.updated_at,
+      pendingMessages: msgCountStmt.get(agent.id).c,
     };
   }
 
@@ -312,6 +332,72 @@ function updateMissionStep(missionId, stepId, data) {
   return db.prepare('SELECT * FROM mission_steps WHERE id = ? AND mission_id = ?').get(stepId, missionId);
 }
 
+// --- Messages ---
+
+function sendMessage(data) {
+  const stmt = db.prepare(`
+    INSERT INTO messages (from_agent, to_agent, type, subject, body, ref_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const result = stmt.run(
+    data.from,
+    data.to,
+    data.type || 'notification',
+    data.subject || null,
+    data.body,
+    data.refId || null
+  );
+  return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function getMessages(filters = {}) {
+  let sql = `
+    SELECT m.*, fa.name as from_name, ta.name as to_name
+    FROM messages m
+    JOIN agents fa ON m.from_agent = fa.id
+    JOIN agents ta ON m.to_agent = ta.id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (filters.to) { sql += ' AND m.to_agent = ?'; params.push(filters.to); }
+  if (filters.from) { sql += ' AND m.from_agent = ?'; params.push(filters.from); }
+  if (filters.status) { sql += ' AND m.status = ?'; params.push(filters.status); }
+  if (filters.type) { sql += ' AND m.type = ?'; params.push(filters.type); }
+
+  sql += ' ORDER BY m.created_at DESC';
+
+  if (filters.limit) { sql += ' LIMIT ?'; params.push(parseInt(filters.limit)); }
+
+  return db.prepare(sql).all(...params);
+}
+
+function updateMessage(id, data) {
+  const fields = [];
+  const params = [];
+
+  if (data.status) {
+    fields.push('status = ?');
+    params.push(data.status);
+    if (data.status === 'read') {
+      fields.push("read_at = datetime('now')");
+    }
+  }
+
+  if (fields.length === 0) return null;
+  params.push(id);
+
+  db.prepare(`UPDATE messages SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+  return db.prepare('SELECT * FROM messages WHERE id = ?').get(id);
+}
+
+function getMessageCounts(agentId) {
+  return db.prepare(`
+    SELECT COUNT(*) as pending
+    FROM messages WHERE to_agent = ? AND status = 'pending'
+  `).get(agentId);
+}
+
 module.exports = {
   db,
   getAgents,
@@ -326,4 +412,8 @@ module.exports = {
   updateMission,
   addMissionStep,
   updateMissionStep,
+  sendMessage,
+  getMessages,
+  updateMessage,
+  getMessageCounts,
 };

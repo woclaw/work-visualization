@@ -11,6 +11,10 @@ const {
   updateMissionStep,
   upsertAgent,
   pushEvent,
+  sendMessage,
+  getMessages,
+  updateMessage,
+  getMessageCounts,
 } = require('./db');
 
 const app = express();
@@ -19,6 +23,7 @@ const PORT = 3001;
 const API_KEY = process.env.DASHBOARD_API_KEY;
 
 const ALLOWED_ORIGINS = [
+  'https://northbank-company.netlify.app',
   'https://openclaw-work-visual.netlify.app',
   'http://178.156.133.80:3001',
   'http://localhost:3001',
@@ -178,6 +183,53 @@ app.patch('/api/missions/:id/steps/:stepId', requireAuth, (req, res) => {
     );
     if (!step) return res.status(404).json({ error: 'Step not found' });
     res.json(step);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Messages ---
+
+app.get('/api/messages', (req, res) => {
+  try {
+    res.json(getMessages({
+      to: req.query.to,
+      from: req.query.from,
+      status: req.query.status,
+      type: req.query.type,
+      limit: req.query.limit || 50,
+    }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/messages/count/:agentId', (req, res) => {
+  try {
+    res.json(getMessageCounts(req.params.agentId));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/messages', requireAuth, (req, res) => {
+  try {
+    const { from, to, type, subject, body, refId } = req.body;
+    if (!from || !to || !body) {
+      return res.status(400).json({ error: 'from, to, and body are required' });
+    }
+    const message = sendMessage({ from, to, type, subject, body, refId });
+    res.status(201).json(message);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/messages/:id', requireAuth, (req, res) => {
+  try {
+    const message = updateMessage(parseInt(req.params.id), req.body);
+    if (!message) return res.status(404).json({ error: 'Message not found' });
+    res.json(message);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1702,6 +1702,121 @@ body {
     font-style: italic;
 }
 
+/* --- Drawer messages --- */
+
+.drawer-messages-header {
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    padding: 12px 16px 8px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.drawer-msg-count {
+    font-family: var(--font-body);
+    font-size: 9px;
+    background: var(--accent-secondary);
+    color: var(--bg-deep);
+    padding: 1px 5px;
+    border-radius: 6px;
+    min-width: 14px;
+    text-align: center;
+}
+
+.drawer-msg-count:empty { display: none; }
+
+.drawer-messages {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-bottom: 4px;
+}
+
+.drawer-message {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(42, 42, 74, 0.3);
+    transition: background 0.2s;
+}
+
+.drawer-message.pending {
+    background: rgba(240, 192, 64, 0.04);
+    border-left: 2px solid var(--winston-color);
+}
+
+.drawer-message.read {
+    opacity: 0.6;
+}
+
+.msg-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.msg-from {
+    font-family: var(--font-pixel);
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.msg-time {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: auto;
+}
+
+.msg-type-badge {
+    font-family: var(--font-pixel);
+    font-size: 6px;
+    padding: 1px 4px;
+    border: 1px solid var(--text-dim);
+    color: var(--text-dim);
+}
+
+.msg-type-badge.request { border-color: var(--accent-secondary); color: var(--accent-secondary); }
+.msg-type-badge.response { border-color: var(--accent-primary); color: var(--accent-primary); }
+.msg-type-badge.notification { border-color: var(--text-dim); }
+
+.msg-from.winston     { color: var(--winston-color); }
+.msg-from.engineering { color: var(--engineering-color); }
+.msg-from.designer    { color: var(--designer-color); }
+.msg-from.writer      { color: var(--writer-color); }
+.msg-from.observer    { color: var(--observer-color); }
+.msg-from.finance     { color: var(--finance-color); }
+.msg-from.marketing   { color: var(--marketing-color); }
+.msg-from.research    { color: var(--research-color); }
+.msg-from.operations  { color: var(--operations-color); }
+.msg-from.legal       { color: var(--legal-color); }
+
+.msg-subject {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.msg-body {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.4;
+}
+
+/* --- Pill message badge --- */
+
+.pill-msg-badge {
+    font-size: 9px;
+    background: var(--accent-secondary);
+    color: var(--bg-deep);
+    padding: 0 4px;
+    border-radius: 6px;
+    min-width: 14px;
+    text-align: center;
+    line-height: 14px;
+}
+
 .drawer-events-header {
     font-family: var(--font-pixel);
     font-size: 8px;
