@@ -182,17 +182,53 @@
             </div>
         </section>
 
-        <aside class="activity-feed" id="activityFeed">
-            <div class="feed-header">
-                <span class="feed-icon">&#9611;</span>
-                ACTIVITY LOG
-                <span class="feed-live">LIVE</span>
-            </div>
-            <div class="feed-entries" id="feedEntries">
-                <!-- Entries injected by JS -->
-            </div>
-        </aside>
+        <div class="sidebar">
+            <!-- Activity Feed -->
+            <aside class="activity-feed" id="activityFeed">
+                <div class="feed-header">
+                    <span class="feed-icon">&#9611;</span>
+                    ACTIVITY LOG
+                    <span class="feed-live">LIVE</span>
+                </div>
+                <div class="feed-entries" id="feedEntries">
+                    <!-- Entries injected by JS -->
+                </div>
+            </aside>
+
+            <!-- Missions Panel -->
+            <section class="missions-panel" id="missionsPanel">
+                <div class="missions-header" id="missionsToggle">
+                    <span class="missions-icon">&#9733;</span>
+                    MISSIONS
+                    <span class="missions-count" id="missionsCount">0</span>
+                    <span class="missions-chevron" id="missionsChevron">&#9660;</span>
+                </div>
+                <div class="missions-list" id="missionsList">
+                    <!-- Mission cards injected by JS -->
+                </div>
+            </section>
+        </div>
     </main>
+
+    <!-- Agent Detail Drawer -->
+    <div class="agent-drawer" id="agentDrawer">
+        <div class="drawer-backdrop" id="drawerBackdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <span class="drawer-agent-name" id="drawerAgentName">WINSTON</span>
+                <span class="drawer-close" id="drawerClose">&#10005;</span>
+            </div>
+            <div class="drawer-status" id="drawerStatus">
+                <span class="drawer-status-dot"></span>
+                <span class="drawer-status-text"></span>
+            </div>
+            <div class="drawer-task" id="drawerTask"></div>
+            <div class="drawer-events-header">RECENT EVENTS</div>
+            <div class="drawer-events" id="drawerEvents">
+                <!-- Agent-specific events -->
+            </div>
+        </div>
+    </div>
 
     <footer class="status-bar" id="statusBar">
         <!-- Agent pills injected by JS -->

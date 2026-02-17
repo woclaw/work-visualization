@@ -1,1 +1,1 @@
-/api/status http://178.156.133.80:3001/status.json 200
+/api/* http://178.156.133.80:3001/api/:splat 200

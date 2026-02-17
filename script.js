@@ -2,215 +2,291 @@
    OPENCLAW AGENT OFFICE - Script
    ============================================ */
 
-// --- Agent Configuration ---
-// To add a new agent, just push to this array.
-// Set status to 'active' when the agent is deployed.
-const agents = [
-    {
-        id: 'main',
-        name: 'Winston',
-        cssClass: 'winston',
-        role: 'Coordinator',
-        defaultStatus: 'active',
-        color: '#f0c040',
-    },
-    {
-        id: 'coder',
-        name: 'Coder',
-        cssClass: 'coder',
-        role: 'Developer',
-        defaultStatus: 'coming_soon',
-        color: '#40d0e0',
-    },
-    {
-        id: 'researcher',
-        name: 'Researcher',
-        cssClass: 'researcher',
-        role: 'Analyst',
-        defaultStatus: 'coming_soon',
-        color: '#40e080',
-    },
-    {
-        id: 'writer',
-        name: 'Writer',
-        cssClass: 'writer',
-        role: 'Content',
-        defaultStatus: 'coming_soon',
-        color: '#c060f0',
-    },
-    {
-        id: 'ops',
-        name: 'Ops',
-        cssClass: 'ops',
-        role: 'DevOps',
-        defaultStatus: 'coming_soon',
-        color: '#f08040',
-    }
-];
+const API_BASE = '/api';
+
+// --- Agent visual config (CSS classes, colors) ---
+const AGENT_CONFIG = {
+    main:       { cssClass: 'winston',    color: '#f0c040' },
+    coder:      { cssClass: 'coder',      color: '#40d0e0' },
+    researcher: { cssClass: 'researcher', color: '#40e080' },
+    writer:     { cssClass: 'writer',     color: '#c060f0' },
+    ops:        { cssClass: 'ops',        color: '#f08040' },
+};
 
 // --- State ---
-const EXPIRY_MS = 20 * 60 * 1000; // 20 minutes
-const POLL_INTERVAL = 5000; // 5 seconds
-let lastStatus = null;
-let displayedEntries = new Set();
+let currentAgents = {};
+let missionsExpanded = true;
+
+// --- DOM refs ---
+const feedEntries = document.getElementById('feedEntries');
+const missionsList = document.getElementById('missionsList');
+const missionsCount = document.getElementById('missionsCount');
+const missionsChevron = document.getElementById('missionsChevron');
+const missionsToggle = document.getElementById('missionsToggle');
+const agentDrawer = document.getElementById('agentDrawer');
+
+// --- API helpers ---
+async function fetchJSON(path) {
+    const res = await fetch(API_BASE + path);
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+}
+
+// --- Timestamp formatting ---
+function formatTime(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z'));
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+function formatTimeAgo(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z'));
+    const diff = Date.now() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
 
 // --- Activity Feed ---
-const feedEntries = document.getElementById('feedEntries');
+function renderFeed(events) {
+    feedEntries.innerHTML = '';
+    for (const event of events) {
+        const config = AGENT_CONFIG[event.agent] || AGENT_CONFIG[event.agent_id] || { cssClass: 'winston', color: '#f0c040' };
+        const agentName = event.agentName || event.agent_name || event.agent || 'System';
+        const message = event.message || '';
+        const time = formatTime(event.timestamp || event.created_at);
 
-function timeAgo(timestamp) {
-    const diff = Date.now() - new Date(timestamp).getTime();
-    const seconds = Math.floor(diff / 1000);
-    if (seconds < 60) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return minutes + 'm ago';
-    const hours = Math.floor(minutes / 60);
-    return hours + 'h ago';
-}
+        const highlightedMessage = message.replace(
+            /(heartbeat|inbox|tasks?|webhook|status|report|error|health|backup|deploy|tests?|API|debug|mission|working|idle|offline)/gi,
+            '<span class="highlight">$1</span>'
+        );
 
-function getAgentConfig(agentId) {
-    return agents.find(a => a.id === agentId) || agents[0];
-}
-
-function renderFeedEntry(entry) {
-    const agent = getAgentConfig(entry.agent);
-    const el = document.createElement('div');
-    el.className = 'feed-entry';
-    el.dataset.timestamp = entry.timestamp;
-
-    el.innerHTML = `
-        <div class=entry-header>
-            <span class=entry-agent ${agent.cssClass}>${agent.name}</span>
-            <span class=entry-time>${timeAgo(entry.timestamp)}</span>
-        </div>
-        <div class=entry-message>${entry.message}</div>
-    `;
-
-    return el;
-}
-
-function updateFeed(activity) {
-    if (!activity || !Array.isArray(activity)) return;
-
-    const now = Date.now();
-
-    // Filter to entries within the last 20 minutes
-    const recent = activity.filter(e => {
-        const age = now - new Date(e.timestamp).getTime();
-        return age < EXPIRY_MS;
-    });
-
-    // Sort newest first
-    recent.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-    // Build a key set for current entries
-    const currentKeys = new Set(recent.map(e => e.timestamp + e.message));
-
-    // Only re-render if entries changed
-    const prevKeys = new Set([...feedEntries.querySelectorAll('.feed-entry')].map(
-        el => el.dataset.timestamp + el.querySelector('.entry-message')?.textContent
-    ));
-
-    const changed = currentKeys.size !== prevKeys.size ||
-        [...currentKeys].some(k => !prevKeys.has(k));
-
-    if (!changed) {
-        // Just update the relative timestamps
-        feedEntries.querySelectorAll('.feed-entry').forEach(el => {
-            const ts = el.dataset.timestamp;
-            if (ts) {
-                el.querySelector('.entry-time').textContent = timeAgo(ts);
-            }
-        });
-        return;
+        const entry = document.createElement('div');
+        entry.className = 'feed-entry';
+        entry.innerHTML = `
+            <div class="entry-header">
+                <span class="entry-agent ${config.cssClass}">${agentName}</span>
+                <span class="entry-time">${time}</span>
+            </div>
+            <div class="entry-message">${highlightedMessage}</div>
+        `;
+        feedEntries.appendChild(entry);
     }
 
-    // Full re-render
-    feedEntries.innerHTML = '';
-    if (recent.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'feed-empty';
-        empty.textContent = 'No recent activity';
-        feedEntries.appendChild(empty);
-    } else {
-        recent.forEach(entry => {
-            feedEntries.appendChild(renderFeedEntry(entry));
-        });
+    if (events.length === 0) {
+        feedEntries.innerHTML = '<div class="feed-empty">No activity yet</div>';
+    }
+}
+
+// --- Agent Desk Updates ---
+function updateDesks(agents) {
+    currentAgents = agents;
+
+    for (const [id, agent] of Object.entries(agents)) {
+        const desk = document.querySelector(`.desk-unit[data-agent="${id}"]`);
+        if (!desk) continue;
+
+        const isActive = agent.status === 'working' || agent.status === 'active';
+        const isIdle = agent.status === 'idle';
+        const isOffline = agent.status === 'offline';
+
+        // Update active/inactive classes
+        desk.classList.toggle('active', isActive);
+        desk.classList.toggle('inactive', isOffline);
+        desk.classList.toggle('idle', isIdle);
+
+        // Update status indicator
+        const statusEl = desk.querySelector('.status-indicator');
+        const comingSoon = desk.querySelector('.coming-soon-badge');
+
+        if (isActive) {
+            if (!statusEl) {
+                const indicator = document.createElement('div');
+                indicator.className = 'status-indicator active';
+                indicator.innerHTML = '<span class="status-dot"></span> WORKING';
+                if (comingSoon) comingSoon.replaceWith(indicator);
+                else desk.appendChild(indicator);
+            } else {
+                statusEl.className = 'status-indicator active';
+                statusEl.innerHTML = '<span class="status-dot"></span> WORKING';
+            }
+        } else if (isIdle) {
+            if (statusEl) {
+                statusEl.className = 'status-indicator idle';
+                statusEl.innerHTML = '<span class="status-dot"></span> IDLE';
+            } else if (comingSoon) {
+                const indicator = document.createElement('div');
+                indicator.className = 'status-indicator idle';
+                indicator.innerHTML = '<span class="status-dot"></span> IDLE';
+                comingSoon.replaceWith(indicator);
+            }
+        }
     }
 }
 
 // --- Status Bar ---
-function buildStatusBar(agentStatuses) {
+function buildStatusBar(agents) {
     const statusBar = document.getElementById('statusBar');
     statusBar.innerHTML = '';
 
-    agents.forEach(agent => {
+    for (const [id, agent] of Object.entries(agents)) {
+        const config = AGENT_CONFIG[id] || { cssClass: id, color: '#888' };
+        const isActive = agent.status === 'working' || agent.status === 'active';
+        const isIdle = agent.status === 'idle';
+
         const pill = document.createElement('div');
-
-        // Check live status from status.json
-        let liveStatus = null;
-        if (agentStatuses && agentStatuses[agent.id]) {
-            liveStatus = agentStatuses[agent.id].status;
-        }
-
-        const isActive = liveStatus === 'working' || liveStatus === 'idle' ||
-                         liveStatus === 'waiting' || agent.defaultStatus === 'active';
-        const isWorking = liveStatus === 'working';
-        const isWaiting = liveStatus === 'waiting';
-
-        pill.className = `agent-pill ${agent.cssClass} ${isActive ? 'active' : ''}`;
+        pill.className = `agent-pill ${config.cssClass} ${isActive ? 'active' : ''}`;
+        pill.dataset.agent = id;
 
         let statusText, statusClass;
-        if (isWorking) {
+        if (isActive) {
             statusText = 'Working';
-            statusClass = 'working-status';
-        } else if (isWaiting) {
-            statusText = 'Waiting';
-            statusClass = 'waiting-status';
-        } else if (liveStatus === 'idle') {
+            statusClass = 'active-status';
+        } else if (isIdle) {
             statusText = 'Idle';
             statusClass = 'idle-status';
-        } else if (agent.defaultStatus === 'active') {
-            statusText = 'Active';
-            statusClass = 'active-status';
         } else {
-            statusText = 'Coming Soon';
+            statusText = agent.status === 'offline' ? 'Coming Soon' : agent.status;
             statusClass = 'coming-soon-status';
         }
 
-        // Show current task for working agents
-        const currentTask = agentStatuses?.[agent.id]?.currentTask;
-        const taskHtml = currentTask && isWorking
-            ? `<span class=pill-task>${currentTask}</span>`
-            : '';
-
         pill.innerHTML = `
-            <span class=pill-icon></span>
-            <span class=pill-name>${agent.name}</span>
-            <span class=pill-status ${statusClass}>${statusText}</span>
-            ${taskHtml}
+            <span class="pill-icon"></span>
+            <span class="pill-name">${agent.name}</span>
+            <span class="pill-status ${statusClass}">${statusText}</span>
         `;
 
+        pill.addEventListener('click', () => openAgentDrawer(id));
         statusBar.appendChild(pill);
+    }
+}
+
+// --- Missions ---
+function renderMissions(missions) {
+    missionsCount.textContent = missions.length;
+    missionsList.innerHTML = '';
+
+    if (missions.length === 0) {
+        missionsList.innerHTML = '<div class="missions-empty">No active missions</div>';
+        return;
+    }
+
+    for (const mission of missions) {
+        const card = document.createElement('div');
+        card.className = `mission-card status-${mission.status}`;
+
+        const totalSteps = mission.steps ? mission.steps.length : 0;
+        const doneSteps = mission.steps ? mission.steps.filter(s => s.status === 'succeeded').length : 0;
+        const progressPct = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
+
+        const agentName = mission.agent_id && currentAgents[mission.agent_id]
+            ? currentAgents[mission.agent_id].name
+            : mission.agent_id || 'Unassigned';
+
+        card.innerHTML = `
+            <div class="mission-title">${escapeHtml(mission.title)}</div>
+            <div class="mission-meta">
+                <span class="mission-status-badge ${mission.status}">${mission.status}</span>
+                <span class="mission-agent">${escapeHtml(agentName)}</span>
+                <span class="mission-time">${formatTimeAgo(mission.updated_at)}</span>
+            </div>
+            ${totalSteps > 0 ? `
+                <div class="mission-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPct}%"></div>
+                    </div>
+                    <span class="progress-text">${doneSteps}/${totalSteps}</span>
+                </div>
+            ` : ''}
+        `;
+
+        missionsList.appendChild(card);
+    }
+}
+
+// --- Agent Drawer ---
+async function openAgentDrawer(agentId) {
+    const agent = currentAgents[agentId];
+    if (!agent) return;
+
+    const config = AGENT_CONFIG[agentId] || { cssClass: 'winston', color: '#f0c040' };
+
+    document.getElementById('drawerAgentName').textContent = agent.name;
+    document.getElementById('drawerAgentName').className = `drawer-agent-name ${config.cssClass}`;
+
+    const statusEl = document.getElementById('drawerStatus');
+    statusEl.innerHTML = `
+        <span class="drawer-status-dot ${agent.status}"></span>
+        <span class="drawer-status-text">${agent.status}</span>
+    `;
+
+    const taskEl = document.getElementById('drawerTask');
+    taskEl.textContent = agent.currentTask || 'No current task';
+    taskEl.className = `drawer-task ${agent.currentTask ? '' : 'no-task'}`;
+
+    const eventsEl = document.getElementById('drawerEvents');
+    eventsEl.innerHTML = '<div class="drawer-loading">Loading...</div>';
+
+    agentDrawer.classList.add('open');
+
+    try {
+        const events = await fetchJSON(`/events?agent=${agentId}&limit=20`);
+        eventsEl.innerHTML = '';
+
+        if (events.length === 0) {
+            eventsEl.innerHTML = '<div class="drawer-empty">No recent events</div>';
+            return;
+        }
+
+        for (const event of events) {
+            const div = document.createElement('div');
+            div.className = 'drawer-event';
+            div.innerHTML = `
+                <span class="drawer-event-time">${formatTime(event.created_at)}</span>
+                <span class="drawer-event-type">${event.type}</span>
+                <span class="drawer-event-msg">${escapeHtml(event.message)}</span>
+            `;
+            eventsEl.appendChild(div);
+        }
+    } catch (err) {
+        eventsEl.innerHTML = '<div class="drawer-empty">Could not load events</div>';
+    }
+}
+
+function closeAgentDrawer() {
+    agentDrawer.classList.remove('open');
+}
+
+// --- Desk click handlers ---
+function setupDeskClicks() {
+    document.querySelectorAll('.desk-unit[data-agent]').forEach(desk => {
+        desk.style.cursor = 'pointer';
+        desk.addEventListener('click', () => {
+            openAgentDrawer(desk.dataset.agent);
+        });
     });
 }
 
-// --- Poll status.json ---
-async function pollStatus() {
-    try {
-        const res = await fetch((window.location.hostname === '178.156.133.80' ? '/status.json?t=' : '/api/status?t=') + Date.now());
-        if (!res.ok) throw new Error('status ' + res.status);
-        const data = await res.json();
-        lastStatus = data;
+// --- Missions toggle ---
+function setupMissionsToggle() {
+    missionsToggle.addEventListener('click', () => {
+        missionsExpanded = !missionsExpanded;
+        missionsList.classList.toggle('collapsed', !missionsExpanded);
+        missionsChevron.textContent = missionsExpanded ? '\u25BC' : '\u25B6';
+    });
+}
 
-        updateFeed(data.activity || []);
-        buildStatusBar(data.agents || {});
-    } catch (err) {
-        // status.json might not exist yet — show empty state
-        if (!lastStatus) {
-            updateFeed([]);
-            buildStatusBar({});
-        }
-    }
+// --- Drawer close ---
+function setupDrawerClose() {
+    document.getElementById('drawerClose').addEventListener('click', closeAgentDrawer);
+    document.getElementById('drawerBackdrop').addEventListener('click', closeAgentDrawer);
 }
 
 // --- Particles ---
@@ -234,30 +310,52 @@ function createParticles() {
             'rgba(240, 128, 64, 0.2)',
         ];
         particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-
         container.appendChild(particle);
     }
 }
 
+// --- Utility ---
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// --- Polling ---
+let pollInterval = null;
+
+async function poll() {
+    try {
+        const [status, missions] = await Promise.all([
+            fetchJSON('/status'),
+            fetchJSON('/missions?status=proposed,approved,running&limit=10'),
+        ]);
+
+        if (status.agents) {
+            updateDesks(status.agents);
+            buildStatusBar(status.agents);
+        }
+        if (status.activity) {
+            renderFeed(status.activity);
+        }
+        renderMissions(missions);
+    } catch (err) {
+        console.error('Poll error:', err);
+    }
+}
+
 // --- Initialize ---
-function init() {
+async function init() {
     createParticles();
+    setupDeskClicks();
+    setupMissionsToggle();
+    setupDrawerClose();
 
-    // Initial poll
-    pollStatus();
+    // Initial load
+    await poll();
 
-    // Poll every 5 seconds
-    setInterval(pollStatus, POLL_INTERVAL);
-
-    // Update relative timestamps every 30 seconds
-    setInterval(() => {
-        feedEntries.querySelectorAll('.feed-entry').forEach(el => {
-            const ts = el.dataset.timestamp;
-            if (ts) {
-                el.querySelector('.entry-time').textContent = timeAgo(ts);
-            }
-        });
-    }, 30000);
+    // Poll every 10 seconds
+    pollInterval = setInterval(poll, 10000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
