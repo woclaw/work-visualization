@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant - Work Visualization</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="scene">
+    <!-- Ambient particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-pulse"></div>
+      <h1>AI Assistant</h1>
+      <div class="status-badge" id="statusBadge">
+        <span class="status-dot"></span>
+        <span class="status-text">Working</span>
+      </div>
+    </header>
+
+    <!-- Main workspace -->
+    <div class="workspace">
+
+      <!-- Avatar section -->
+      <div class="avatar-section">
+        <div class="avatar-container">
+          <!-- Orbital rings -->
+          <div class="orbital orbital-1"></div>
+          <div class="orbital orbital-2"></div>
+          <div class="orbital orbital-3"></div>
+
+          <!-- Core avatar -->
+          <div class="avatar-core">
+            <div class="avatar-face">
+              <div class="eye left-eye">
+                <div class="pupil"></div>
+              </div>
+              <div class="eye right-eye">
+                <div class="pupil"></div>
+              </div>
+              <div class="mouth"></div>
+            </div>
+            <div class="avatar-glow"></div>
+          </div>
+
+          <!-- Energy nodes on orbitals -->
+          <div class="node node-1"></div>
+          <div class="node node-2"></div>
+          <div class="node node-3"></div>
+          <div class="node node-4"></div>
+          <div class="node node-5"></div>
+        </div>
+
+        <!-- Thought bubble -->
+        <div class="thought-bubble" id="thoughtBubble">
+          <span class="thought-text" id="thoughtText">Analyzing code...</span>
+        </div>
+
+        <!-- Activity label -->
+        <div class="activity-label" id="activityLabel">Processing</div>
+      </div>
+
+      <!-- Workstation section -->
+      <div class="workstation">
+        <!-- Monitor -->
+        <div class="monitor">
+          <div class="monitor-frame">
+            <div class="monitor-screen">
+              <!-- Terminal header -->
+              <div class="terminal-header">
+                <div class="terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <span class="terminal-title">claude-tasks</span>
+              </div>
+
+              <!-- Task list -->
+              <div class="task-list" id="taskList">
+                <!-- Tasks injected by JS -->
+              </div>
+
+              <!-- Terminal input line -->
+              <div class="terminal-input">
+                <span class="prompt">&gt;</span>
+                <span class="cursor" id="terminalCursor"></span>
+                <span class="typing-text" id="typingText"></span>
+              </div>
+            </div>
+            <div class="screen-glare"></div>
+          </div>
+          <div class="monitor-stand"></div>
+          <div class="monitor-base"></div>
+        </div>
+
+        <!-- Desk surface -->
+        <div class="desk">
+          <div class="desk-items">
+            <div class="coffee-cup">
+              <div class="cup-body"></div>
+              <div class="cup-handle"></div>
+              <div class="steam">
+                <div class="steam-line steam-1"></div>
+                <div class="steam-line steam-2"></div>
+                <div class="steam-line steam-3"></div>
+              </div>
+            </div>
+            <div class="notebook">
+              <div class="notebook-lines"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-value" id="tasksCompleted">0</span>
+        <span class="stat-label">Completed</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="linesWritten">0</span>
+        <span class="stat-label">Lines Written</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="filesChanged">0</span>
+        <span class="stat-label">Files Changed</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="uptime">00:00:00</span>
+        <span class="stat-label">Uptime</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
