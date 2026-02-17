@@ -1,143 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Assistant - Work Visualization</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Agent Office</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="scene">
-    <!-- Ambient particles -->
+    <div class="scanline-overlay"></div>
     <div class="particles" id="particles"></div>
 
-    <!-- Header -->
     <header class="header">
-      <div class="header-pulse"></div>
-      <h1>AI Assistant</h1>
-      <div class="status-badge" id="statusBadge">
-        <span class="status-dot"></span>
-        <span class="status-text">Working</span>
-      </div>
+        <div class="logo">
+            <span class="logo-icon">&#9670;</span>
+            <span class="logo-text">OPENCLAW</span>
+            <span class="logo-sub">AGENT OFFICE</span>
+        </div>
+        <div class="header-status">
+            <span class="pulse-dot"></span>
+            <span>SYSTEMS ONLINE</span>
+        </div>
     </header>
 
-    <!-- Main workspace -->
-    <div class="workspace">
-
-      <!-- Avatar section -->
-      <div class="avatar-section">
-        <div class="avatar-container">
-          <!-- Orbital rings -->
-          <div class="orbital orbital-1"></div>
-          <div class="orbital orbital-2"></div>
-          <div class="orbital orbital-3"></div>
-
-          <!-- Core avatar -->
-          <div class="avatar-core">
-            <div class="avatar-face">
-              <div class="eye left-eye">
-                <div class="pupil"></div>
-              </div>
-              <div class="eye right-eye">
-                <div class="pupil"></div>
-              </div>
-              <div class="mouth"></div>
-            </div>
-            <div class="avatar-glow"></div>
-          </div>
-
-          <!-- Energy nodes on orbitals -->
-          <div class="node node-1"></div>
-          <div class="node node-2"></div>
-          <div class="node node-3"></div>
-          <div class="node node-4"></div>
-          <div class="node node-5"></div>
-        </div>
-
-        <!-- Thought bubble -->
-        <div class="thought-bubble" id="thoughtBubble">
-          <span class="thought-text" id="thoughtText">Analyzing code...</span>
-        </div>
-
-        <!-- Activity label -->
-        <div class="activity-label" id="activityLabel">Processing</div>
-      </div>
-
-      <!-- Workstation section -->
-      <div class="workstation">
-        <!-- Monitor -->
-        <div class="monitor">
-          <div class="monitor-frame">
-            <div class="monitor-screen">
-              <!-- Terminal header -->
-              <div class="terminal-header">
-                <div class="terminal-dots">
-                  <span class="dot dot-red"></span>
-                  <span class="dot dot-yellow"></span>
-                  <span class="dot dot-green"></span>
+    <main class="main-layout">
+        <section class="office-scene" id="officeScene">
+            <div class="office-floor">
+                <!-- Winston - Central Coordinator Desk -->
+                <div class="desk-unit winston active" data-agent="main">
+                    <div class="desk-label">WINSTON</div>
+                    <div class="desk-role">Coordinator</div>
+                    <div class="desk-structure">
+                        <div class="desk-surface">
+                            <div class="monitor">
+                                <div class="monitor-screen">
+                                    <div class="screen-lines">
+                                        <div class="screen-line"></div>
+                                        <div class="screen-line"></div>
+                                        <div class="screen-line"></div>
+                                        <div class="screen-line"></div>
+                                        <div class="screen-line"></div>
+                                    </div>
+                                </div>
+                                <div class="monitor-stand"></div>
+                                <div class="monitor-glow"></div>
+                            </div>
+                            <div class="coffee-mug">
+                                <div class="steam">
+                                    <div class="steam-particle"></div>
+                                    <div class="steam-particle"></div>
+                                    <div class="steam-particle"></div>
+                                </div>
+                            </div>
+                            <div class="keyboard">
+                                <div class="key-row">
+                                    <span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span>
+                                </div>
+                                <div class="key-row">
+                                    <span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chair">
+                            <div class="agent-avatar winston-avatar">
+                                <div class="avatar-head"></div>
+                                <div class="avatar-body"></div>
+                                <div class="avatar-hands">
+                                    <div class="hand left-hand"></div>
+                                    <div class="hand right-hand"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="desk-base"></div>
+                    <div class="status-indicator active">
+                        <span class="status-dot"></span>
+                        ACTIVE
+                    </div>
                 </div>
-                <span class="terminal-title">claude-tasks</span>
-              </div>
 
-              <!-- Task list -->
-              <div class="task-list" id="taskList">
-                <!-- Tasks injected by JS -->
-              </div>
+                <!-- Coder Desk -->
+                <div class="desk-unit coder inactive" data-agent="coder">
+                    <div class="desk-label">CODER</div>
+                    <div class="desk-role">Developer</div>
+                    <div class="desk-structure">
+                        <div class="desk-surface">
+                            <div class="monitor dual-monitor">
+                                <div class="monitor-screen">
+                                    <div class="screen-static"></div>
+                                </div>
+                                <div class="monitor-stand"></div>
+                            </div>
+                            <div class="monitor dual-monitor secondary">
+                                <div class="monitor-screen">
+                                    <div class="screen-static"></div>
+                                </div>
+                                <div class="monitor-stand"></div>
+                            </div>
+                            <div class="keyboard dim"></div>
+                        </div>
+                        <div class="chair empty-chair"></div>
+                    </div>
+                    <div class="desk-base"></div>
+                    <div class="coming-soon-badge">COMING SOON</div>
+                </div>
 
-              <!-- Terminal input line -->
-              <div class="terminal-input">
-                <span class="prompt">&gt;</span>
-                <span class="cursor" id="terminalCursor"></span>
-                <span class="typing-text" id="typingText"></span>
-              </div>
+                <!-- Researcher Desk -->
+                <div class="desk-unit researcher inactive" data-agent="researcher">
+                    <div class="desk-label">RESEARCHER</div>
+                    <div class="desk-role">Analyst</div>
+                    <div class="desk-structure">
+                        <div class="desk-surface">
+                            <div class="monitor">
+                                <div class="monitor-screen">
+                                    <div class="screen-static"></div>
+                                </div>
+                                <div class="monitor-stand"></div>
+                            </div>
+                            <div class="book-stack">
+                                <div class="book"></div>
+                                <div class="book"></div>
+                                <div class="book"></div>
+                            </div>
+                            <div class="magnifying-glass"></div>
+                        </div>
+                        <div class="chair empty-chair"></div>
+                    </div>
+                    <div class="desk-base"></div>
+                    <div class="coming-soon-badge">COMING SOON</div>
+                </div>
+
+                <!-- Writer Desk -->
+                <div class="desk-unit writer inactive" data-agent="writer">
+                    <div class="desk-label">WRITER</div>
+                    <div class="desk-role">Content</div>
+                    <div class="desk-structure">
+                        <div class="desk-surface">
+                            <div class="monitor">
+                                <div class="monitor-screen">
+                                    <div class="screen-static"></div>
+                                </div>
+                                <div class="monitor-stand"></div>
+                            </div>
+                            <div class="document-stack">
+                                <div class="document"></div>
+                                <div class="document"></div>
+                            </div>
+                            <div class="pen-holder">
+                                <div class="pen"></div>
+                                <div class="pen"></div>
+                            </div>
+                        </div>
+                        <div class="chair empty-chair"></div>
+                    </div>
+                    <div class="desk-base"></div>
+                    <div class="coming-soon-badge">COMING SOON</div>
+                </div>
+
+                <!-- Ops Desk -->
+                <div class="desk-unit ops inactive" data-agent="ops">
+                    <div class="desk-label">OPS</div>
+                    <div class="desk-role">DevOps</div>
+                    <div class="desk-structure">
+                        <div class="desk-surface">
+                            <div class="monitor">
+                                <div class="monitor-screen">
+                                    <div class="screen-static"></div>
+                                </div>
+                                <div class="monitor-stand"></div>
+                            </div>
+                            <div class="server-rack">
+                                <div class="server-light"></div>
+                                <div class="server-light"></div>
+                                <div class="server-light"></div>
+                            </div>
+                        </div>
+                        <div class="chair empty-chair"></div>
+                    </div>
+                    <div class="desk-base"></div>
+                    <div class="coming-soon-badge">COMING SOON</div>
+                </div>
             </div>
-            <div class="screen-glare"></div>
-          </div>
-          <div class="monitor-stand"></div>
-          <div class="monitor-base"></div>
-        </div>
+        </section>
 
-        <!-- Desk surface -->
-        <div class="desk">
-          <div class="desk-items">
-            <div class="coffee-cup">
-              <div class="cup-body"></div>
-              <div class="cup-handle"></div>
-              <div class="steam">
-                <div class="steam-line steam-1"></div>
-                <div class="steam-line steam-2"></div>
-                <div class="steam-line steam-3"></div>
-              </div>
+        <aside class="activity-feed" id="activityFeed">
+            <div class="feed-header">
+                <span class="feed-icon">&#9611;</span>
+                ACTIVITY LOG
+                <span class="feed-live">LIVE</span>
             </div>
-            <div class="notebook">
-              <div class="notebook-lines"></div>
+            <div class="feed-entries" id="feedEntries">
+                <!-- Entries injected by JS -->
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        </aside>
+    </main>
 
-    <!-- Stats bar -->
-    <div class="stats-bar">
-      <div class="stat">
-        <span class="stat-value" id="tasksCompleted">0</span>
-        <span class="stat-label">Completed</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="linesWritten">0</span>
-        <span class="stat-label">Lines Written</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="filesChanged">0</span>
-        <span class="stat-label">Files Changed</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="uptime">00:00:00</span>
-        <span class="stat-label">Uptime</span>
-      </div>
-    </div>
-  </div>
+    <footer class="status-bar" id="statusBar">
+        <!-- Agent pills injected by JS -->
+    </footer>
 
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
