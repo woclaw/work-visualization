@@ -1,0 +1,5 @@
+[[redirects]]
+  from = /api/status
+  to = http://178.156.133.80:3001/status.json
+  status = 200
+  force = true
