@@ -24,6 +24,30 @@
         </div>
     </header>
 
+    <!-- Dashboard Stats Row -->
+    <section class="dashboard-stats" id="dashboardStats">
+        <div class="stat-card">
+            <div class="stat-value" id="statAgentsOnline">0</div>
+            <div class="stat-label">AGENTS ONLINE</div>
+            <div class="stat-bar"><div class="stat-bar-fill" id="statAgentsBar"></div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statMissionsActive">0</div>
+            <div class="stat-label">ACTIVE MISSIONS</div>
+            <div class="stat-bar"><div class="stat-bar-fill accent-gold" id="statMissionsBar"></div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statEventsToday">0</div>
+            <div class="stat-label">EVENTS TODAY</div>
+            <div class="stat-bar"><div class="stat-bar-fill accent-cyan" id="statEventsBar"></div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statMsgPending">0</div>
+            <div class="stat-label">PENDING MSGS</div>
+            <div class="stat-bar"><div class="stat-bar-fill accent-purple" id="statMsgsBar"></div></div>
+        </div>
+    </section>
+
     <main class="main-layout">
         <!-- Left column: Agent Grid -->
         <section class="agents-section">
@@ -31,20 +55,16 @@
                 <span class="section-title">AGENTS</span>
                 <span class="section-count" id="agentOnlineCount">0 / 10</span>
             </div>
-            <div class="agent-grid" id="agentGrid">
-                <!-- Agent cards injected by JS -->
-            </div>
+            <div class="agent-grid" id="agentGrid"></div>
         </section>
 
-        <!-- Center column: Activity Feed -->
+        <!-- Center column: Activity Timeline -->
         <section class="feed-section">
             <div class="section-bar">
-                <span class="section-title">ACTIVITY LOG</span>
+                <span class="section-title">ACTIVITY TIMELINE</span>
                 <span class="feed-live">LIVE</span>
             </div>
-            <div class="feed-entries" id="feedEntries">
-                <!-- Entries injected by JS -->
-            </div>
+            <div class="timeline" id="feedEntries"></div>
         </section>
 
         <!-- Right column: Missions -->
@@ -53,9 +73,7 @@
                 <span class="section-title">MISSIONS</span>
                 <span class="section-count" id="missionsCount">0</span>
             </div>
-            <div class="missions-list" id="missionsList">
-                <!-- Mission cards injected by JS -->
-            </div>
+            <div class="missions-list" id="missionsList"></div>
         </section>
     </main>
 
@@ -79,6 +97,18 @@
             <div class="drawer-messages" id="drawerMessages"></div>
             <div class="drawer-events-header">RECENT EVENTS</div>
             <div class="drawer-events" id="drawerEvents"></div>
+        </div>
+    </div>
+
+    <!-- Mission Detail Drawer -->
+    <div class="mission-drawer" id="missionDrawer">
+        <div class="drawer-backdrop" id="missionDrawerBackdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <span class="drawer-agent-name" id="missionDrawerTitle">MISSION</span>
+                <span class="drawer-close" id="missionDrawerClose">&#10005;</span>
+            </div>
+            <div class="mission-drawer-body" id="missionDrawerBody"></div>
         </div>
     </div>
 

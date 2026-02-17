@@ -17,7 +17,15 @@ const AGENT_CONFIG = {
     legal:       { cssClass: 'legal',       label: 'Mallory',   role: 'Legal' },
 };
 
+const STEP_ICONS = {
+    queued:    '\u25CB',  // ○
+    running:   '\u25D4',  // ◔
+    succeeded: '\u25CF',  // ●
+    failed:    '\u2716',  // ✖
+};
+
 let currentAgents = {};
+let currentMissions = [];
 
 const feedEntries = document.getElementById('feedEntries');
 const missionsList = document.getElementById('missionsList');
@@ -25,6 +33,7 @@ const missionsCount = document.getElementById('missionsCount');
 const agentGrid = document.getElementById('agentGrid');
 const agentOnlineCount = document.getElementById('agentOnlineCount');
 const agentDrawer = document.getElementById('agentDrawer');
+const missionDrawer = document.getElementById('missionDrawer');
 
 async function fetchJSON(path) {
     const res = await fetch(API_BASE + path);
@@ -60,6 +69,25 @@ function escapeHtml(str) {
 function updateClock() {
     const el = document.getElementById('headerClock');
     if (el) el.textContent = new Date().toLocaleTimeString('en-GB');
+}
+
+// --- Dashboard Stats ---
+function updateDashboardStats(agents, activity, missions) {
+    const agentValues = Object.values(agents);
+    const online = agentValues.filter(a => a.status === 'working' || a.status === 'active' || a.status === 'idle').length;
+    const total = agentValues.length;
+    const activeMissions = missions.filter(m => m.status === 'running' || m.status === 'approved').length;
+    const totalPending = agentValues.reduce((sum, a) => sum + (a.pendingMessages || 0), 0);
+
+    document.getElementById('statAgentsOnline').textContent = online;
+    document.getElementById('statMissionsActive').textContent = activeMissions;
+    document.getElementById('statEventsToday').textContent = activity.length;
+    document.getElementById('statMsgPending').textContent = totalPending;
+
+    document.getElementById('statAgentsBar').style.width = total > 0 ? `${(online / total) * 100}%` : '0%';
+    document.getElementById('statMissionsBar').style.width = missions.length > 0 ? `${(activeMissions / missions.length) * 100}%` : '0%';
+    document.getElementById('statEventsBar').style.width = `${Math.min(activity.length / 20 * 100, 100)}%`;
+    document.getElementById('statMsgsBar').style.width = `${Math.min(totalPending / 10 * 100, 100)}%`;
 }
 
 // --- Agent Grid ---
@@ -105,7 +133,7 @@ function buildAgentGrid(agents) {
     agentOnlineCount.textContent = `${onlineCount} / ${total}`;
 }
 
-// --- Activity Feed ---
+// --- Activity Timeline ---
 function renderFeed(events) {
     feedEntries.innerHTML = '';
 
@@ -119,6 +147,7 @@ function renderFeed(events) {
         const agentName = event.agentName || event.agent_name || event.agent || 'System';
         const message = event.message || '';
         const time = formatTime(event.timestamp || event.created_at);
+        const type = event.type || 'general';
 
         const highlighted = message.replace(
             /(heartbeat|inbox|tasks?|webhook|status|report|error|health|backup|deploy|tests?|API|debug|mission|working|idle|offline)/gi,
@@ -126,9 +155,11 @@ function renderFeed(events) {
         );
 
         const entry = document.createElement('div');
-        entry.className = 'feed-entry';
+        entry.className = 'timeline-entry';
         entry.innerHTML = `
-            <div class="entry-header">
+            <span class="timeline-node type-${type}"></span>
+            <div class="timeline-header">
+                <span class="timeline-type ${type}">${type.replace('_', ' ')}</span>
                 <span class="entry-agent ${config.cssClass}">${agentName}</span>
                 <span class="entry-time">${time}</span>
             </div>
@@ -140,6 +171,7 @@ function renderFeed(events) {
 
 // --- Missions ---
 function renderMissions(missions) {
+    currentMissions = missions;
     missionsCount.textContent = missions.length;
     missionsList.innerHTML = '';
 
@@ -152,31 +184,61 @@ function renderMissions(missions) {
         const card = document.createElement('div');
         card.className = `mission-card status-${mission.status}`;
 
-        const totalSteps = mission.steps ? mission.steps.length : 0;
-        const doneSteps = mission.steps ? mission.steps.filter(s => s.status === 'succeeded').length : 0;
+        const steps = mission.steps || [];
+        const totalSteps = steps.length;
+        const doneSteps = steps.filter(s => s.status === 'succeeded').length;
         const pct = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
+        const isComplete = pct === 100 && totalSteps > 0;
 
         const agentName = mission.agent_id && currentAgents[mission.agent_id]
             ? currentAgents[mission.agent_id].name
             : mission.agent_id || 'Unassigned';
 
-        card.innerHTML = `
-            <div class="mission-title">${escapeHtml(mission.title)}</div>
-            <div class="mission-meta">
-                <span class="mission-status-badge ${mission.status}">${mission.status}</span>
-                <span class="mission-agent">${escapeHtml(agentName)}</span>
-                <span class="mission-time">${formatTimeAgo(mission.updated_at)}</span>
-            </div>
-            ${totalSteps > 0 ? `
-                <div class="mission-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width:${pct}%"></div>
-                    </div>
-                    <span class="progress-text">${doneSteps}/${totalSteps}</span>
+        // Build steps preview (max 4 visible)
+        let stepsHtml = '';
+        if (totalSteps > 0) {
+            const visibleSteps = steps.slice(0, 4);
+            const stepsRows = visibleSteps.map(s => `
+                <div class="step-row">
+                    <span class="step-icon ${s.status}">${STEP_ICONS[s.status] || STEP_ICONS.queued}</span>
+                    <span class="step-label">${escapeHtml(s.description)}</span>
+                    <span class="step-kind">${s.kind}</span>
                 </div>
-            ` : ''}
+            `).join('');
+            const moreLabel = totalSteps > 4 ? `<div class="step-row"><span class="step-icon queued"></span><span class="step-label">+${totalSteps - 4} more</span></div>` : '';
+            stepsHtml = `<div class="mission-steps-preview">${stepsRows}${moreLabel}</div>`;
+        }
+
+        const descHtml = mission.description
+            ? `<div class="mission-description">${escapeHtml(mission.description)}</div>`
+            : '';
+
+        card.innerHTML = `
+            <div class="mission-card-header">
+                <div class="mission-title-row">
+                    <div class="mission-title">${escapeHtml(mission.title)}</div>
+                    <span class="mission-status-badge ${mission.status}">${mission.status}</span>
+                </div>
+                <div class="mission-meta">
+                    <span class="mission-agent">${escapeHtml(agentName)}</span>
+                    <span class="mission-time">${formatTimeAgo(mission.updated_at)}</span>
+                </div>
+            </div>
+            <div class="mission-card-body">
+                ${descHtml}
+                ${totalSteps > 0 ? `
+                    <div class="mission-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill${isComplete ? ' complete' : ''}" style="width:${pct}%"></div>
+                        </div>
+                        <span class="progress-text">${doneSteps}/${totalSteps}</span>
+                    </div>
+                ` : ''}
+            </div>
+            ${stepsHtml}
         `;
 
+        card.addEventListener('click', () => openMissionDrawer(mission.id));
         missionsList.appendChild(card);
     }
 }
@@ -263,6 +325,64 @@ function closeAgentDrawer() {
     agentDrawer.classList.remove('open');
 }
 
+// --- Mission Drawer ---
+async function openMissionDrawer(missionId) {
+    const bodyEl = document.getElementById('missionDrawerBody');
+    const titleEl = document.getElementById('missionDrawerTitle');
+    bodyEl.innerHTML = '<div class="drawer-loading">Loading...</div>';
+    titleEl.textContent = 'MISSION';
+    missionDrawer.classList.add('open');
+
+    try {
+        const mission = await fetchJSON(`/missions/${missionId}`);
+        titleEl.textContent = mission.title.length > 30 ? mission.title.slice(0, 30) + '...' : mission.title;
+
+        const agentName = mission.agent_id && currentAgents[mission.agent_id]
+            ? currentAgents[mission.agent_id].name
+            : mission.agent_id || 'Unassigned';
+
+        const steps = mission.steps || [];
+        const doneSteps = steps.filter(s => s.status === 'succeeded').length;
+
+        let stepsHtml = '';
+        if (steps.length > 0) {
+            stepsHtml = `
+                <div class="mission-drawer-steps-title">STEPS (${doneSteps}/${steps.length})</div>
+                ${steps.map(s => `
+                    <div class="mission-drawer-step">
+                        <span class="drawer-step-icon ${s.status}">${STEP_ICONS[s.status] || STEP_ICONS.queued}</span>
+                        <div class="drawer-step-body">
+                            <div class="drawer-step-desc">${escapeHtml(s.description)}</div>
+                            <div class="drawer-step-meta">
+                                <span>${s.kind}</span>
+                                <span>${s.status}</span>
+                                ${s.result ? `<span>${escapeHtml(s.result)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        bodyEl.innerHTML = `
+            ${mission.description ? `<div class="mission-drawer-desc">${escapeHtml(mission.description)}</div>` : ''}
+            <div class="mission-drawer-meta">
+                <span><span class="meta-label">STATUS</span> <span class="meta-value"><span class="mission-status-badge ${mission.status}">${mission.status}</span></span></span>
+                <span><span class="meta-label">AGENT</span> <span class="meta-value">${escapeHtml(agentName)}</span></span>
+                <span><span class="meta-label">CREATED</span> <span class="meta-value">${formatTimeAgo(mission.created_at)}</span></span>
+                <span><span class="meta-label">UPDATED</span> <span class="meta-value">${formatTimeAgo(mission.updated_at)}</span></span>
+            </div>
+            ${stepsHtml}
+        `;
+    } catch (err) {
+        bodyEl.innerHTML = '<div class="drawer-empty">Could not load mission</div>';
+    }
+}
+
+function closeMissionDrawer() {
+    missionDrawer.classList.remove('open');
+}
+
 // --- Polling ---
 async function poll() {
     try {
@@ -274,6 +394,7 @@ async function poll() {
         if (status.agents) buildAgentGrid(status.agents);
         if (status.activity) renderFeed(status.activity);
         renderMissions(missions);
+        updateDashboardStats(status.agents || {}, status.activity || [], missions);
     } catch (err) {
         console.error('Poll error:', err);
     }
@@ -286,6 +407,8 @@ function init() {
 
     document.getElementById('drawerClose').addEventListener('click', closeAgentDrawer);
     document.getElementById('drawerBackdrop').addEventListener('click', closeAgentDrawer);
+    document.getElementById('missionDrawerClose').addEventListener('click', closeMissionDrawer);
+    document.getElementById('missionDrawerBackdrop').addEventListener('click', closeMissionDrawer);
 
     poll();
     setInterval(poll, 10000);
