@@ -197,7 +197,7 @@ function buildStatusBar(agentStatuses) {
 // --- Poll status.json ---
 async function pollStatus() {
     try {
-        const res = await fetch('/status.json?t=' + Date.now());
+        const res = await fetch((window.location.hostname === '178.156.133.80' ? '' : 'http://178.156.133.80:3001') + '/status.json?t=' + Date.now());
         if (!res.ok) throw new Error('status ' + res.status);
         const data = await res.json();
         lastStatus = data;
