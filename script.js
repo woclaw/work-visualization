@@ -160,7 +160,7 @@ function renderFeed(events) {
             <span class="timeline-node type-${type}"></span>
             <div class="timeline-header">
                 <span class="timeline-type ${type}">${type.replace('_', ' ')}</span>
-                <span class="entry-agent ${config.cssClass}">${agentName}</span>
+                <span class="entry-agent ${config.cssClass}">${escapeHtml(agentName)}</span>
                 <span class="entry-time">${time}</span>
             </div>
             <div class="entry-message">${highlighted}</div>
@@ -395,8 +395,17 @@ async function poll() {
         if (status.activity) renderFeed(status.activity);
         renderMissions(missions);
         updateDashboardStats(status.agents || {}, status.activity || [], missions);
-    } catch (err) {
-        console.error('Poll error:', err);
+    } catch {
+        try {
+            const res = await fetch('status.json');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.agents) buildAgentGrid(data.agents);
+                if (data.activity) renderFeed(data.activity);
+                renderMissions([]);
+                updateDashboardStats(data.agents || {}, data.activity || [], []);
+            }
+        } catch { /* static fallback also unavailable */ }
     }
 }
 
