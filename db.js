@@ -88,12 +88,18 @@ const defaultAgents = [
   { id: 'legal', name: 'Mallory', role: 'Contracts & Risk', status: 'offline', currentTask: null },
 ];
 
+const updateNameRoleStmt = db.prepare(`
+  UPDATE agents SET name = ?, role = ?, updated_at = datetime('now') WHERE id = ?
+`);
+
 const seedAgents = db.transaction(() => {
   for (const agent of defaultAgents) {
-    // Only seed if agent doesn't exist yet
     const existing = db.prepare('SELECT id FROM agents WHERE id = ?').get(agent.id);
     if (!existing) {
       upsertAgentStmt.run(agent);
+    } else {
+      // Always sync name/role, preserve status/current_task
+      updateNameRoleStmt.run(agent.name, agent.role, agent.id);
     }
   }
 });
