@@ -76,11 +76,16 @@ const upsertAgentStmt = db.prepare(`
 `);
 
 const defaultAgents = [
-  { id: 'main', name: 'Winston', role: 'Coordinator', status: 'idle', currentTask: null },
-  { id: 'coder', name: 'Coder', role: 'Developer', status: 'offline', currentTask: null },
-  { id: 'researcher', name: 'Researcher', role: 'Analyst', status: 'offline', currentTask: null },
-  { id: 'writer', name: 'Writer', role: 'Content', status: 'offline', currentTask: null },
-  { id: 'ops', name: 'Ops', role: 'DevOps', status: 'offline', currentTask: null },
+  { id: 'main', name: 'Winston', role: 'Chief of Staff', status: 'idle', currentTask: null },
+  { id: 'engineering', name: 'Donatello', role: 'Full-Stack Dev Lead', status: 'offline', currentTask: null },
+  { id: 'designer', name: 'Issey', role: 'Visual & UI/UX', status: 'offline', currentTask: null },
+  { id: 'writer', name: 'Lee', role: 'Content & Copy', status: 'offline', currentTask: null },
+  { id: 'observer', name: 'Niccolo', role: 'Narrator & Chronicler', status: 'offline', currentTask: null },
+  { id: 'finance', name: 'Mark', role: 'Monetary Policy', status: 'offline', currentTask: null },
+  { id: 'marketing', name: 'Steve', role: 'Strategy & Campaigns', status: 'offline', currentTask: null },
+  { id: 'research', name: 'Quill', role: 'Market Intel', status: 'offline', currentTask: null },
+  { id: 'operations', name: 'Tim', role: 'Systems & Automation', status: 'offline', currentTask: null },
+  { id: 'legal', name: 'Mallory', role: 'Contracts & Risk', status: 'offline', currentTask: null },
 ];
 
 const seedAgents = db.transaction(() => {
@@ -94,10 +99,28 @@ const seedAgents = db.transaction(() => {
 });
 seedAgents();
 
+// Active agent IDs (retired: coder, researcher, ops — kept in DB for FK integrity)
+const ACTIVE_IDS = ['main', 'engineering', 'designer', 'writer', 'observer', 'finance', 'marketing', 'research', 'operations', 'legal'];
+
 // --- Helper Functions ---
 
 function getAgents() {
-  return db.prepare('SELECT * FROM agents ORDER BY CASE id WHEN \'main\' THEN 0 ELSE 1 END, name').all();
+  return db.prepare(`
+    SELECT * FROM agents
+    WHERE id IN (${ACTIVE_IDS.map(() => '?').join(',')})
+    ORDER BY CASE id
+      WHEN 'main' THEN 0
+      WHEN 'engineering' THEN 1
+      WHEN 'designer' THEN 2
+      WHEN 'writer' THEN 3
+      WHEN 'observer' THEN 4
+      WHEN 'finance' THEN 5
+      WHEN 'marketing' THEN 6
+      WHEN 'research' THEN 7
+      WHEN 'operations' THEN 8
+      WHEN 'legal' THEN 9
+    END
+  `).all(...ACTIVE_IDS);
 }
 
 function getAgent(id) {

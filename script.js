@@ -6,11 +6,16 @@ const API_BASE = '/api';
 
 // --- Agent visual config (CSS classes, colors) ---
 const AGENT_CONFIG = {
-    main:       { cssClass: 'winston',    color: '#f0c040' },
-    coder:      { cssClass: 'coder',      color: '#40d0e0' },
-    researcher: { cssClass: 'researcher', color: '#40e080' },
-    writer:     { cssClass: 'writer',     color: '#c060f0' },
-    ops:        { cssClass: 'ops',        color: '#f08040' },
+    main:        { cssClass: 'winston',     color: '#f0c040' },
+    engineering: { cssClass: 'engineering', color: '#40d0e0' },
+    designer:    { cssClass: 'designer',    color: '#e06090' },
+    writer:      { cssClass: 'writer',      color: '#c060f0' },
+    observer:    { cssClass: 'observer',    color: '#8090b0' },
+    finance:     { cssClass: 'finance',     color: '#40e080' },
+    marketing:   { cssClass: 'marketing',   color: '#f06060' },
+    research:    { cssClass: 'research',    color: '#60b0f0' },
+    operations:  { cssClass: 'operations',  color: '#f08040' },
+    legal:       { cssClass: 'legal',       color: '#d0d060' },
 };
 
 // --- State ---
@@ -303,11 +308,16 @@ function createParticles() {
         particle.style.opacity = (0.1 + Math.random() * 0.3).toString();
 
         const colors = [
-            'rgba(240, 192, 64, 0.3)',
-            'rgba(64, 208, 224, 0.2)',
-            'rgba(64, 224, 128, 0.2)',
-            'rgba(192, 96, 240, 0.2)',
-            'rgba(240, 128, 64, 0.2)',
+            'rgba(240, 192, 64, 0.3)',   // winston
+            'rgba(64, 208, 224, 0.2)',    // engineering
+            'rgba(224, 96, 144, 0.2)',    // designer
+            'rgba(192, 96, 240, 0.2)',    // writer
+            'rgba(128, 144, 176, 0.2)',   // observer
+            'rgba(64, 224, 128, 0.2)',    // finance
+            'rgba(240, 96, 96, 0.2)',     // marketing
+            'rgba(96, 176, 240, 0.2)',    // research
+            'rgba(240, 128, 64, 0.2)',    // operations
+            'rgba(208, 208, 96, 0.2)',    // legal
         ];
         particle.style.background = colors[Math.floor(Math.random() * colors.length)];
         container.appendChild(particle);
