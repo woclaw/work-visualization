@@ -191,20 +191,45 @@ function getRecentEvents(limit = 50, offset = 0, agentId = null) {
   `).all(limit, offset);
 }
 
+// Staleness threshold: agents with no update in this many minutes show as idle
+const STALE_AGENT_MINUTES = 20;
+// Activity feed: only show events from the last N hours
+const ACTIVITY_WINDOW_HOURS = 6;
+
 function getStatus() {
   const agents = getAgents();
-  const recentEvents = getRecentEvents(20);
 
-  // Build the shape the frontend expects
+  // Activity feed filtered to recent window
+  const recentEvents = db.prepare(`
+    SELECT e.*, a.name as agent_name FROM events e
+    JOIN agents a ON e.agent_id = a.id
+    WHERE e.created_at > datetime('now', '-${ACTIVITY_WINDOW_HOURS} hours')
+    ORDER BY e.created_at DESC LIMIT 30
+  `).all();
+
+  const now = Date.now();
   const msgCountStmt = db.prepare(
     "SELECT COUNT(*) as c FROM messages WHERE to_agent = ? AND status = 'pending'"
   );
   const agentsMap = {};
   for (const agent of agents) {
+    let status = agent.status;
+    let currentTask = agent.current_task;
+
+    // If agent is working/active but hasn't updated in STALE_AGENT_MINUTES, show as idle
+    if ((status === 'working' || status === 'active') && agent.updated_at) {
+      const updatedMs = new Date(agent.updated_at + 'Z').getTime();
+      const ageMinutes = (now - updatedMs) / 60000;
+      if (ageMinutes > STALE_AGENT_MINUTES) {
+        status = 'idle';
+        currentTask = null;
+      }
+    }
+
     agentsMap[agent.id] = {
       name: agent.name,
-      status: agent.status,
-      currentTask: agent.current_task,
+      status,
+      currentTask,
       role: agent.role,
       updatedAt: agent.updated_at,
       pendingMessages: msgCountStmt.get(agent.id).c,
